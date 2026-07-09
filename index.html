@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head> 
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ژمێرەری ECTS</title>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+    
+    :root {
+      --bg: #f4f7fb; --card: #ffffff; --ink: #132238; --muted: #6f7d90;
+      --line: #dfe7f1; --brand: #155eef; --brand2: #0f3fb3;
+      --ok: #067647; --warn: #b54708; --bad: #b42318; --info: #175cd3;
+      --shadow: 0 12px 36px rgba(16,24,40,.06); --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+    
+    body {
+      margin: 0; font-family: 'Arial', 'Inter', sans-serif;
+      background: linear-gradient(180deg, #eef4ff 0%, var(--bg) 240px);
+      color: var(--ink); min-height: 100vh;
+    }
+
+    /* --- WELCOME ANIMATION & DATE BADGE --- */
+    .welcome-container {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; text-align: center; padding: 20px;
+      animation: fadeIn 1s ease forwards;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .welcome-icon { font-size: 54px; margin-bottom: 12px; animation: bounceIn 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+    @keyframes bounceIn { 0% { transform: scale(0); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    
+    .welcome-title { font-size: 34px; font-weight: 900; color: var(--brand2); margin: 0 0 8px 0; letter-spacing:-0.5px;}
+    .welcome-sub { font-size: 16px; font-weight: 700; color: var(--muted); margin: 0 0 20px 0; }
+    
+    .date-badge {
+      font-size: 14px; font-weight: 800; color: var(--brand2); background: #eef4ff; 
+      padding: 10px 20px; border-radius: 14px; margin-bottom: 24px; 
+      border: 1px solid #c7d7fe; box-shadow: 0 4px 12px rgba(21,94,239,0.1);
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+
+    /* --- WIZARD LAYOUT --- */
+    .shell { max-width: 600px; margin: 0 auto; padding: 16px; padding-top: 40px; padding-bottom: 40px; }
+    .wizard-step { display: none; animation: slideIn 0.4s ease forwards; }
+    .wizard-step.active { display: block; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+    .step-header { text-align: center; margin: 0 0 30px 0; }
+    .step-header h2 { margin: 0; font-size: 26px; font-weight: 900; color: var(--ink); line-height: 1.4;}
+    .step-header p { margin: 8px 0 0 0; font-size: 14px; font-weight: 700; color: var(--muted); }
+
+    /* --- BUTTONS --- */
+    .big-btn {
+      display: flex; justify-content: space-between; align-items: center; width: 100%;
+      border: none; border-radius: 18px; padding: 22px 24px; margin-bottom: 16px; 
+      font-size: 20px; font-weight: 800; color: #fff; text-align: inherit; 
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s ease;
+    }
+    .big-btn:hover, .big-btn:active { transform: translateY(-3px); filter: brightness(1.05); }
+    .big-btn::after { content: '←'; color: rgba(255,255,255,0.8); font-size: 24px; }
+
+    .btn-general { background: linear-gradient(135deg, #132238, #374151); }
+    .btn-private { background: linear-gradient(135deg, var(--brand), var(--brand2)); }
+    .btn-fall    { background: linear-gradient(135deg, #f59e0b, #d97706); } 
+    .btn-spring  { background: linear-gradient(135deg, #10b981, #059669); } 
+    
+    .btn-stg1 { background: linear-gradient(135deg, #3b82f6, #2563eb); } 
+    .btn-stg2 { background: linear-gradient(135deg, #8b5cf6, #7c3aed); } 
+    .btn-stg3 { background: linear-gradient(135deg, #ec4899, #db2777); } 
+    .btn-stg4 { background: linear-gradient(135deg, #06b6d4, #0891b2); } 
+
+    /* --- UI ELEMENTS --- */
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; margin-bottom: 18px; box-shadow: var(--shadow); }
+    .card h3 { margin: 0 0 16px 0; font-size: 18px; font-weight: 800; color: var(--ink); }
+    
+    label { display: block; font-size: 13px; font-weight: 800; color: var(--muted); margin-bottom: 8px; }
+    input, select, .btn { font: inherit; width: 100%; border-radius: 14px; padding: 14px 16px; font-size: 15px; font-weight: 700; outline: none; min-height: 52px; border: 2px solid #dfe7f1; transition: 0.2s; margin-bottom: 16px; }
+    input:focus, select:focus { border-color: var(--brand); box-shadow: 0 0 0 4px rgba(21,94,239,0.1); }
+    select:disabled, input:disabled { opacity: 0.5; background: #f1f5f9; }
+    
+    .btn-primary { background: linear-gradient(135deg, var(--brand), var(--brand2)); color: #fff; border: 0; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(21,94,239,0.2); }
+    .btn-outline { background: #fff; color: var(--brand); border: 2px solid var(--brand); cursor: pointer; }
+    .btn-danger-sm { background: #fef3f2; color: var(--bad); border: 1px solid #fecdca; padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 800; cursor: pointer;}
+    .btn-action { background: #fff; border: 2px solid var(--line); color: var(--ink); padding: 14px; border-radius: 14px; font-weight: 800; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 14px;}
+
+    /* --- RESULTS TRACKER --- */
+    #exportArea { background: #fff; padding: 24px; border-radius: 24px; border: 1px solid var(--line); margin-bottom:20px; }
+    .res-label { font-size: 15px; font-weight: 800; color: var(--muted); margin-bottom: 10px; display: block; }
+    .subject-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .subject-item { display: flex; justify-content: space-between; align-items: center; background: #fff; border: 1px solid var(--line); padding: 14px 16px; border-radius: 14px; font-size: 15px; font-weight: 700; }
+    .fail-item { border-color: #fed7aa; background: #fff7ed; }
+    
+    .total-box { border-radius: 18px; padding: 24px; text-align: center; color: #fff; margin-top: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.1); transition: all 0.3s; }
+    .total-box.full { background: linear-gradient(135deg, #059669, #10b981); border: 2px solid #047857; }
+    .total-box.partial { background: linear-gradient(135deg, #d97706, #f59e0b); border: 2px solid #b45309; }
+    
+    .total-v { font-size: 26px; font-weight: 900; margin: 4px 0; }
+    .total-sub { font-size: 16px; font-weight: 700; opacity: 0.95; }
+    
+    .reset-link { text-align: center; margin-top: 20px; display: block; font-size: 15px; font-weight: 800; color: var(--muted); cursor: pointer; text-decoration: underline; }
+    
+    /* --- SUCCESS MESSAGE --- */
+    .success-msg {
+      background: linear-gradient(135deg, #ecfdf3, #d1fadf); border: 2px solid #a6f4c5; 
+      padding: 24px; border-radius: 18px; text-align: center; margin-bottom: 20px;
+    }
+    .success-msg h3 { margin: 0 0 8px 0; color: #067647; font-size: 20px; font-weight: 900;}
+    .success-msg p { margin: 0; color: #027a48; font-weight: 700; font-size: 15px;}
+
+    /* --- DYNAMIC LOADING OVERLAY --- */
+    #globalLoader { 
+      display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(5px);
+      z-index: 9999; align-items: center; justify-content: center; flex-direction: column; text-align: center;
+    }
+    .loader-card { background: #fff; padding: 40px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); border: 1px solid var(--line); min-width: 280px; }
+    
+    .modern-loader { display: flex; justify-content: center; gap: 8px; margin-bottom: 20px; }
+    .modern-loader .dot { width: 14px; height: 14px; background: var(--brand); border-radius: 50%; animation: bounce 0.5s alternate infinite cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .modern-loader .dot:nth-child(2) { animation-delay: 0.15s; }
+    .modern-loader .dot:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-12px); } }
+
+    #loaderTitle { font-size: 18px; font-weight: 900; color: var(--ink); margin: 0; line-height: 1.5; }
+  </style>
+</head>
+<body>
+
+  <div id="globalLoader">
+    <div class="loader-card">
+      <div class="modern-loader">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <h3 id="loaderTitle">تکایە چاوەڕێبە...</h3>
+    </div>
+  </div>
+
+  <div class="shell">
+    
+    <div id="step0" class="wizard-step active">
+      <div class="welcome-container">
+        <div class="welcome-icon">🎓</div>
+        <h1 class="welcome-title">ژمێرەری ECTS</h1>
+        <p class="welcome-sub">بەشی زمانی ئینگلیزی - زانکۆی ڕاپەڕین</p>
+        
+        <div id="liveDateDisplay" class="date-badge"></div>
+        
+        <div style="width: 100%; max-width: 400px; margin-top: 10px;">
+          <button class="big-btn btn-general" onclick="startGeneral()">چوونەژوورەوەی گشتی (General)</button>
+          <button class="big-btn btn-private" onclick="startPrivate()">چوونەژوورەوەی تایبەت (Private)</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="step1" class="wizard-step">
+      <div class="step-header"><h2>هەنگاوی یەکەم</h2><p>وەرزی خوێندن هەڵبژێرە</p></div>
+      <button class="big-btn btn-fall" onclick="goToStep('step2', 'Fall')">وەرزی پایزە</button>
+      <button class="big-btn btn-spring" onclick="goToStep('step2', 'Spring')">وەرزی بەهارە</button>
+      <div class="reset-link" onclick="goToStep('step0')">← گەڕانەوە بۆ سەرەتا</div>
+    </div>
+
+    <div id="step2" class="wizard-step">
+      <div class="step-header"><h2>هەنگاوی دووەم</h2><p>قۆناغی ئێستات هەڵبژێرە</p></div>
+      <button class="big-btn btn-stg1" onclick="goToStep('step3', 1)">قۆناغی یەکەم</button>
+      <button class="big-btn btn-stg2" onclick="goToStep('step3', 2)">قۆناغی دووەم</button>
+      <button class="big-btn btn-stg3" onclick="goToStep('step3', 3)">قۆناغی سێیەم</button>
+      <button class="big-btn btn-stg4" onclick="goToStep('step3', 4)">قۆناغی چوارەم</button>
+      <div class="reset-link" onclick="goToStep('step1')">← گەڕانەوە بۆ هەنگاوی پێشوو</div>
+    </div>
+
+    <div id="step3" class="wizard-step">
+      <div class="step-header"><h2>زیادکردنی وانەی کەوتوو</h2><p>ئەگەر وانەی ساڵانی پێشووت هەیە</p></div>
+      <div class="card">
+        <label>ساڵی کەوتن</label>
+        <select id="selFailYear" onchange="populateFailSubjects()"></select>
+        <label>وانەی کەوتوو</label>
+        <select id="selFailSubject"></select>
+        <button class="btn btn-primary" onclick="addFailedSubjectGeneral()">+ زیادکردن و بینینی ئەنجام</button>
+        <button class="btn btn-outline" onclick="goToStep('step4')">تێپەڕاندن بۆ ئەنجامەکان</button>
+      </div>
+      <div id="backBtnStep3" class="reset-link" onclick="goToStep('step2')">← گەڕانەوە بۆ هەنگاوی پێشوو</div>
+    </div>
+
+    <div id="stepP1" class="wizard-step">
+      <div class="step-header"><h2>چوونەژوورەوەی تایبەت</h2><p>تکایە کۆدەکەت بنووسە</p></div>
+      <div class="card">
+        <label>کۆدی خوێندکار</label>
+        <input type="text" id="inputStudentCode" placeholder="نموونە: ENG001" autocomplete="off">
+        <button class="btn btn-primary" onclick="searchStudent()">گەڕان</button>
+      </div>
+      <div class="reset-link" onclick="goToStep('step0')">← گەڕانەوە بۆ سەرەتا</div>
+    </div>
+
+    <div id="stepP2" class="wizard-step">
+      <div class="step-header">
+        <h2 id="privWelcomeName">بەخێربێیت...</h2>
+      </div>
+      <div class="card" style="text-align: center;">
+        <h3 style="margin-bottom: 20px;">وەرزی خوێندن هەڵبژێرە</h3>
+        <button class="big-btn btn-fall" onclick="setPrivateSemester('Fall')">وەرزی پایزە</button>
+        <button class="big-btn btn-spring" onclick="setPrivateSemester('Spring')">وەرزی بەهارە</button>
+      </div>
+      <div class="reset-link" onclick="goToStep('stepP1')">← گەڕانەوە بۆ هەنگاوی پێشوو</div>
+    </div>
+
+    <div id="stepP3" class="wizard-step">
+      <div class="step-header"><h2>وانە کەوتووەکانت</h2><p>تەنها ئەم وانانە دەتوانیت زیاد بکەیت</p></div>
+      
+      <div id="privateSuccessMsg" class="success-msg" style="display: none;">
+        <h3>ئافەرین! 🎉</h3>
+        <p>هیچ وانەیەکی کەوتووت نییە لەم وەرزەدا، لە هەموو وانەکان دەرچوویت.</p>
+      </div>
+
+      <div class="card" id="privateFailForm">
+        <label>هەڵبژاردنی وانە</label>
+        <select id="selPrivateFail"></select>
+        <button class="btn btn-primary" onclick="addFailedSubjectPrivate()">+ زیادکردن و بینینی ئەنجام</button>
+      </div>
+
+      <button id="btnViewPrivResults" class="btn btn-outline" style="border:none; background:#eef4ff; margin-bottom:14px;" onclick="goToStep('step4')">تێپەڕاندن بۆ ئەنجامەکان</button>
+      
+      <div id="backBtnStepP3" class="reset-link" onclick="goToStep('stepP2')">← گەڕانەوە بۆ هەنگاوی پێشوو</div>
+    </div>
+
+    <div id="step4" class="wizard-step">
+      <div class="step-header"><h2 id="dashTitle">ژمێرەری ECTS</h2><p id="dashSub">قۆناغی ئێستا</p></div>
+
+      <div id="exportArea">
+        <div style="font-size:18px; font-weight:900; color:var(--ink); margin-bottom:10px; display:none; text-align:center; border-bottom: 2px solid var(--line); padding-bottom: 12px;" id="pdfHeader">بەشی زمانی ئینگلیزی - ئەنجامی کۆتایی ECTS</div>
+        
+        <div id="studentInfoBox" style="text-align:center; margin-bottom:20px; font-size:14px; font-weight:800; color:var(--brand2); background:#eef4ff; padding:12px; border-radius:12px; border:1px solid #c7d7fe;"></div>
+        
+        <span class="res-label">کۆی بنەڕەتی (Core)</span>
+        <div id="listCore" class="subject-list"></div>
+        
+        <span class="res-label" style="margin-top: 20px;">وانە کەوتووەکان (Overload)</span>
+        <div id="listOverload" class="subject-list"></div>
+
+        <div class="total-box" id="boxTotal">
+          <div style="font-size:15px;font-weight:900;opacity:0.95;margin-bottom:8px;">ئەنجامی کۆتایی ECTS</div>
+          <div class="total-v" id="valTotalStatus">ئەوەی هەڵتبژاردووە: 0 ECTS</div>
+          <div class="total-sub" id="valBreakdown">دەتوانیت هەڵبژێریت: 0 ECTS</div>
+        </div>
+      </div>
+      
+      <button id="btnGoBackAdd" class="btn btn-primary" style="margin-top:10px; background:#f8fafc; color:var(--brand2); border:2px dashed var(--brand2); box-shadow:none;">+ زیادکردنی وانەیەکی تر</button>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px;">
+        <button class="btn-action" style="grid-column: 1 / -1; background: #25D366; color: #fff; border-color: #25D366;" onclick="shareResults()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          ناردنی ئەنجامەکان (Share)
+        </button>
+        <button class="btn-action" style="grid-column: 1 / -1; background: var(--brand); color: #fff; border-color: var(--brand);" onclick="generatePNG()">داگرتن وەک وێنە (PNG)</button>
+        <button class="btn-action" onclick="generatePDF()">فایلی PDF</button>
+        <button class="btn-action" onclick="showQR()">کۆدی QR</button>
+      </div>
+
+      <div class="reset-link" onclick="goToStep('step0')">گەڕانەوە بۆ سەرەتا</div>
+    </div>
+
+  </div>
+
+  <div id="qrModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#fff; padding:30px; border-radius:24px; text-align:center; max-width:320px; width:90%;">
+      <h3 style="margin:0 0 20px 0; color:var(--ink);">پوختەی ECTS</h3>
+      <div id="qrcode" style="margin-bottom:20px; display:flex; justify-content:center; padding:10px; border:1px solid var(--line); border-radius:14px; background: #fff;"></div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-outline" style="margin:0;" onclick="downloadQR()">داگرتنی QR</button>
+        <button class="btn btn-primary" onclick="document.getElementById('qrModal').style.display='none'">داخستن</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- UPDATED URL ---
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxdH6osKxRVIzgA8h9PP6jkTxzFrf3E4HGfzboOkeBFOZDSNFG9dHPLbgnjCVJXiiuhQQ/exec';
+    
+    let syllabus = [];
+    let coreSubjects = [];
+    let overloadSubjects = [];
+    let currentSem = '';
+    let currentStage = 1;
+    let isPrivateMode = false;
+    let privateStudentData = null;
+    
+    const MAX_ECTS = 36;
+    window.jsPDF = window.jspdf.jsPDF;
+    const stageNamesKu = ['', 'قۆناغی یەکەم', 'قۆناغی دووەم', 'قۆناغی سێیەم', 'قۆناغی چوارەم'];
+
+    // --- INITIALIZE & LIVE DATE ---
+    window.onload = function() {
+      renderLiveDate();
+      fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'getSyllabus' })
+      })
+      .then(r => r.json())
+      .then(res => { if(res.success) syllabus = res.data; })
+      .catch(e => console.log("Syllabus fetch error", e));
+    };
+
+    function renderLiveDate() {
+      const days = ['یەکشەممە', 'دووشەممە', 'سێشەممە', 'چوارشەممە', 'پێنجشەممە', 'هەینی', 'شەممە'];
+      const months = ['کانوونی دووەم', 'شوبات', 'ئازار', 'نیسان', 'ئایار', 'حوزەیران', 'تەممووز', 'ئاب', 'ئەیلوول', 'تشرینی یەکەم', 'تشرینی دووەم', 'کانوونی یەکەم'];
+      const now = new Date();
+      
+      let season = '';
+      const m = now.getMonth();
+      if (m >= 2 && m <= 4) season = 'بەهار';
+      else if (m >= 5 && m <= 7) season = 'هاوین';
+      else if (m >= 8 && m <= 10) season = 'پاییز';
+      else season = 'زستان';
+
+      const dateStr = `ئەمڕۆ: ${days[now.getDay()]}، ${now.getDate()} ${months[m]} ${now.getFullYear()} - وەرزی ${season}`;
+      document.getElementById('liveDateDisplay').innerHTML = `<span>🗓</span> ${dateStr}`;
+    }
+
+    // --- DYNAMIC LOADER LOGIC ---
+    let loaderInterval;
+    function showLoader() {
+      const texts = [
+        "تکایە چاوەڕێبە...",
+        "سیستەمەکە پشکنین بۆ دۆخەکەت دەکات...",
+        "خەریکی هێنانەدی زانیارییەکانتین..."
+      ];
+      let idx = 0;
+      document.getElementById('loaderTitle').textContent = texts[0];
+      document.getElementById('globalLoader').style.display = 'flex';
+      
+      loaderInterval = setInterval(() => {
+        idx = (idx + 1) % texts.length;
+        document.getElementById('loaderTitle').textContent = texts[idx];
+      }, 1800);
+    }
+    function hideLoader() {
+      clearInterval(loaderInterval);
+      document.getElementById('globalLoader').style.display = 'none';
+    }
+
+    // --- NAVIGATION LOGIC ---
+    function startGeneral() {
+      isPrivateMode = false;
+      goToStep('step1');
+    }
+    function startPrivate() {
+      isPrivateMode = true;
+      goToStep('stepP1');
+    }
+    
+    function goToStep(stepId, val) {
+      if (stepId === 'step2' && val) currentSem = val;
+      if (stepId === 'step3' && val) {
+        currentStage = val;
+        setupGeneralFailures();
+      }
+      if (stepId === 'step4') setupResultsPage();
+      
+      if (stepId === 'step0') {
+        overloadSubjects = []; coreSubjects = [];
+        isPrivateMode = false; privateStudentData = null;
+        document.getElementById('inputStudentCode').value = '';
+      }
+
+      document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
+      document.getElementById(stepId).classList.add('active');
+
+      // 🚨 LOCK THE SEMESTER IF SUBJECTS ARE ADDED 🚨
+      // Hide the back button on step3/stepP3 so they can't change the semester
+      const back3 = document.getElementById('backBtnStep3');
+      if (back3) back3.style.display = (stepId === 'step3' && overloadSubjects.length > 0) ? 'none' : 'block';
+      
+      const backP3 = document.getElementById('backBtnStepP3');
+      if (backP3) backP3.style.display = (stepId === 'stepP3' && overloadSubjects.length > 0) ? 'none' : 'block';
+    }
+
+    // --- PRIVATE MODE LOGIC ---
+    function searchStudent() {
+      const code = document.getElementById('inputStudentCode').value.trim();
+      if (!code) return alert("تکایە کۆدەکە بنووسە");
+      
+      showLoader();
+
+      fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'getStudent', code: code })
+      })
+      .then(r => r.json())
+      .then(res => {
+        hideLoader();
+        if (res.error) return alert(res.error);
+        privateStudentData = res.data;
+        currentStage = privateStudentData.stage;
+        
+        document.getElementById('privWelcomeName').textContent = `بەخێربێیت ${privateStudentData.name}، تۆ لە ${stageNamesKu[currentStage]} دایت`;
+        
+        goToStep('stepP2');
+      })
+      .catch(e => {
+        hideLoader();
+        alert("کێشەیەک ڕوویدا لە پەیوەندیکردن بە سێرڤەرەوە.");
+      });
+    }
+
+    function setPrivateSemester(sem) {
+      currentSem = sem;
+      coreSubjects = syllabus.filter(s => s.year === currentStage && s.semester === currentSem);
+      
+      const sel = document.getElementById('selPrivateFail');
+      sel.innerHTML = '<option value="">-- هەڵبژێرە --</option>';
+      
+      const myFails = syllabus.filter(s => 
+        s.semester === currentSem && 
+        privateStudentData.failures.includes(String(s.moduleCode).toLowerCase())
+      );
+      
+      const successDiv = document.getElementById('privateSuccessMsg');
+      const failForm = document.getElementById('privateFailForm');
+      const btnView = document.getElementById('btnViewPrivResults');
+      
+      if(myFails.length === 0) {
+        successDiv.style.display = 'block';
+        failForm.style.display = 'none';
+        btnView.textContent = "بینینی ئەنجامەکان (کۆی بنەڕەتی)";
+      } else {
+        successDiv.style.display = 'none';
+        failForm.style.display = 'block';
+        btnView.textContent = "تێپەڕاندن بۆ ئەنجامەکان";
+        myFails.forEach(s => {
+          sel.innerHTML += `<option value="${s.name}" data-ects="${s.ects}">${s.name} (${s.ects} ECTS)</option>`;
+        });
+      }
+      
+      goToStep('stepP3'); // This automatically hides the back button if subjects are selected
+    }
+
+    function addFailedSubjectPrivate() {
+      const sel = document.getElementById('selPrivateFail');
+      const name = sel.value;
+      if (!name) return;
+      if (overloadSubjects.some(s => s.name === name)) return alert("ئەم وانەیە پێشتر زیادکراوە!");
+      
+      const ects = parseInt(sel.options[sel.selectedIndex].getAttribute('data-ects'));
+      if (!checkECTSLimit(ects)) return;
+      
+      overloadSubjects.push({ name: name, ects: ects });
+      sel.value = '';
+      goToStep('step4');
+    }
+
+    // --- GENERAL MODE LOGIC ---
+    function setupGeneralFailures() {
+      coreSubjects = syllabus.filter(s => s.year === currentStage && s.semester === currentSem);
+      const selYear = document.getElementById('selFailYear');
+      const selSub = document.getElementById('selFailSubject');
+      
+      selYear.innerHTML = `<option value="">-- هەڵبژێرە --</option>`;
+      selSub.innerHTML = `<option value="">-- هەڵبژێرە --</option>`;
+      
+      if (currentStage === 1) {
+        selYear.disabled = true; selSub.disabled = true;
+      } else {
+        selYear.disabled = false; selSub.disabled = false;
+        for (let i = 1; i < currentStage; i++) selYear.innerHTML += `<option value="${i}">${stageNamesKu[i]}</option>`;
+      }
+    }
+
+    function populateFailSubjects() {
+      const y = parseInt(document.getElementById('selFailYear').value);
+      const sel = document.getElementById('selFailSubject');
+      sel.innerHTML = `<option value="">-- هەڵبژێرە --</option>`;
+      if (!y) return;
+      syllabus.filter(s => s.year === y && s.semester === currentSem)
+        .forEach(s => sel.innerHTML += `<option value="${s.name}" data-ects="${s.ects}">${s.name} (${s.ects} ECTS)</option>`);
+    }
+
+    function addFailedSubjectGeneral() {
+      const y = document.getElementById('selFailYear').value;
+      const sel = document.getElementById('selFailSubject');
+      const name = sel.value;
+      if (!y || !name) return;
+      if (overloadSubjects.some(s => s.name === name)) return alert("ئەم وانەیە پێشتر زیادکراوە!");
+      
+      const ects = parseInt(sel.options[sel.selectedIndex].getAttribute('data-ects'));
+      if (!checkECTSLimit(ects)) return;
+      
+      overloadSubjects.push({ name: name, ects: ects });
+      sel.value = '';
+      goToStep('step4');
+    }
+
+    // --- HELPER ---
+    function checkECTSLimit(newEcts) {
+      const core = coreSubjects.reduce((tot, s) => tot + s.ects, 0);
+      const over = overloadSubjects.reduce((tot, s) => tot + s.ects, 0);
+      if (core + over + newEcts > MAX_ECTS) {
+        alert(`ناتوانیت لە ${MAX_ECTS} ECTS تێپەڕیت!`);
+        return false;
+      }
+      return true;
+    }
+
+    function removeSubject(index) {
+      overloadSubjects.splice(index, 1);
+      setupResultsPage(); 
+    }
+
+    // --- RESULTS EXACT UI ---
+    function setupResultsPage() {
+      const semName = currentSem === 'Fall' ? 'وەرزی پایزە' : 'وەرزی بەهارە';
+      document.getElementById('dashSub').textContent = `${stageNamesKu[currentStage]} - ${semName}`;
+      
+      // Update Student Info Box
+      let infoText = `${stageNamesKu[currentStage]} - ${semName}`;
+      if (isPrivateMode && privateStudentData) {
+        infoText = `خوێندکار: ${privateStudentData.name} | ` + infoText;
+      }
+      document.getElementById('studentInfoBox').textContent = infoText;
+      
+      const btnBack = document.getElementById('btnGoBackAdd');
+      btnBack.onclick = function() {
+        goToStep(isPrivateMode ? 'stepP3' : 'step3');
+      };
+
+      const coreEcts = coreSubjects.reduce((tot, s) => tot + s.ects, 0);
+      const overEcts = overloadSubjects.reduce((tot, s) => tot + s.ects, 0);
+      const total = coreEcts + overEcts;
+
+      // Render Core
+      const listCore = document.getElementById('listCore');
+      if (coreSubjects.length === 0) {
+        listCore.innerHTML = `<div class="subject-item"><span style="color:var(--muted)">هیچ وانەیەک نییە.</span></div>`;
+      } else {
+        let html = coreSubjects.map(s => `<div class="subject-item"><span>${s.name}</span><span style="font-weight:900; color:var(--info);">${s.ects} ECTS</span></div>`).join('');
+        listCore.innerHTML = html;
+      }
+
+      // Render Overload
+      const listOverload = document.getElementById('listOverload');
+      if (overloadSubjects.length === 0) {
+        listOverload.innerHTML = `<div class="subject-item"><span style="color:var(--muted)">هیچ وانەیەک زیاد نەکراوە.</span></div>`;
+      } else {
+        listOverload.innerHTML = overloadSubjects.map((s, idx) => `
+          <div class="subject-item fail-item">
+            <span>${s.name}</span>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="font-weight:900; color:var(--warn);">${s.ects} ECTS</span>
+              <button class="btn-danger-sm" data-html2canvas-ignore="true" onclick="removeSubject(${idx})">سڕینەوە</button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      const box = document.getElementById('boxTotal');
+      document.getElementById('valTotalStatus').textContent = `ئەوەی هەڵتبژاردووە: ${total} ECTS`;
+      
+      if (total === MAX_ECTS) {
+        document.getElementById('valBreakdown').textContent = `دەتوانیت هەڵبژێریت: 0 ECTS`;
+        box.className = 'total-box full';
+      } else {
+        const remain = MAX_ECTS - total;
+        document.getElementById('valBreakdown').textContent = `دەتوانیت هەڵبژێریت: ${remain} ECTS`;
+        box.className = 'total-box partial';
+      }
+    }
+
+    // --- SHARE FUNCTIONALITY ---
+    function shareResults() {
+      const coreEcts = coreSubjects.reduce((tot, s) => tot + s.ects, 0);
+      const overEcts = overloadSubjects.reduce((tot, s) => tot + s.ects, 0);
+      const total = coreEcts + overEcts;
+      
+      let semNameKu = currentSem === 'Fall' ? 'پاییزە' : 'بەهارە';
+      
+      let text = `🎓 ئەنجامی کۆتایی ECTS\n`;
+      text += `بەشی زمانی ئینگلیزی - زانکۆی ڕاپەڕین\n\n`;
+      
+      if(isPrivateMode && privateStudentData) {
+        text += `👤 خوێندکار: ${privateStudentData.name}\n`;
+      }
+      
+      text += `📅 ${stageNamesKu[currentStage]} - وەرزی ${semNameKu}\n\n`;
+      text += `📘 کۆی بنەڕەتی: ${coreEcts} ECTS\n`;
+      text += `📙 وانە کەوتووەکان: ${overEcts} ECTS\n`;
+      text += `✅ کۆی گشتی: ${total}/${MAX_ECTS} ECTS\n`;
+
+      if (navigator.share) {
+        navigator.share({
+          title: 'ئەنجامی ECTS',
+          text: text
+        }).catch(console.error);
+      } else {
+        const waUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+        window.open(waUrl, '_blank');
+      }
+    }
+
+    // --- EXPORTS & QRIOUS QR CODE ---
+    function generatePNG() {
+      const target = document.getElementById('exportArea');
+      const head = document.getElementById('pdfHeader');
+      head.style.display = 'block'; target.style.border = 'none';
+      html2canvas(target, { scale: 3 }).then(canvas => {
+        const a = document.createElement('a');
+        a.download = `ECTS_${currentStage}_${currentSem}.png`;
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+        head.style.display = 'none'; target.style.border = '1px solid var(--line)';
+      });
+    }
+
+    function generatePDF() {
+      const target = document.getElementById('exportArea');
+      const head = document.getElementById('pdfHeader');
+      head.style.display = 'block'; target.style.border = 'none';
+      html2canvas(target, { scale: 2 }).then(canvas => {
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const img = canvas.toDataURL('image/png');
+        const w = pdf.internal.pageSize.getWidth();
+        const h = (canvas.height * w) / canvas.width;
+        pdf.addImage(img, 'PNG', 0, 10, w, h);
+        pdf.save(`ECTS_${currentStage}_${currentSem}.pdf`);
+        head.style.display = 'none'; target.style.border = '1px solid var(--line)';
+      });
+    }
+
+    function showQR() {
+      const coreEcts = coreSubjects.reduce((tot, s) => tot + s.ects, 0);
+      const overEcts = overloadSubjects.reduce((tot, s) => tot + s.ects, 0);
+      const total = coreEcts + overEcts;
+      
+      let txt = `Raparin Uni - ECTS Load\nStage: ${currentStage}, Sem: ${currentSem}\n\n`;
+      if(isPrivateMode && privateStudentData) txt += `Student: ${privateStudentData.name}\n\n`;
+      txt += `Total Load: ${total}/${MAX_ECTS} ECTS`;
+      
+      const qc = document.getElementById('qrcode');
+      qc.innerHTML = '<canvas id="qrCanvas"></canvas>'; // Creates raw canvas for QRious
+      
+      // QRious perfectly handles long texts and native characters
+      new QRious({
+        element: document.getElementById('qrCanvas'),
+        value: txt,
+        size: 200,
+        background: '#ffffff',
+        foreground: '#132238',
+        level: 'M'
+      });
+      
+      document.getElementById('qrModal').style.display = 'flex';
+    }
+
+    function downloadQR() {
+      const canvas = document.getElementById('qrCanvas');
+      if (!canvas) return alert("ببورە، کۆدی QR ئامادە نییە!");
+
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL("image/png");
+      link.download = `ECTS_QR_${currentStage}_${currentSem}.png`;
+      link.click();
+    }
+  </script>
+</body>
+</html>
