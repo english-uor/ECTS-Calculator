@@ -436,7 +436,7 @@
         failForm.style.display = 'block';
         btnView.textContent = "تێپەڕاندن بۆ ئەنجامەکان";
         myFails.forEach(s => {
-          sel.innerHTML += `<option value="${s.name}" data-ects="${s.ects}">${s.name} (${s.ects} ECTS)</option>`;
+          sel.innerHTML += `<option value="${s.name}" data-ects="${s.ects}" data-stage="${s.year}">${s.name} - ${stageNamesKu[s.year]} (${s.ects} ECTS)</option>`;
         });
       }
       
@@ -450,9 +450,10 @@
       if (overloadSubjects.some(s => s.name === name)) return alert("ئەم وانەیە پێشتر زیادکراوە!");
       
       const ects = parseInt(sel.options[sel.selectedIndex].getAttribute('data-ects'));
+      const stage = parseInt(sel.options[sel.selectedIndex].getAttribute('data-stage'));
       if (!checkECTSLimit(ects)) return;
       
-      overloadSubjects.push({ name: name, ects: ects });
+      overloadSubjects.push({ name: name, ects: ects, stage: stage });
       sel.value = '';
       goToStep('step4');
     }
@@ -480,7 +481,7 @@
       sel.innerHTML = `<option value="">-- هەڵبژێرە --</option>`;
       if (!y) return;
       syllabus.filter(s => s.year === y && s.semester === currentSem)
-        .forEach(s => sel.innerHTML += `<option value="${s.name}" data-ects="${s.ects}">${s.name} (${s.ects} ECTS)</option>`);
+        .forEach(s => sel.innerHTML += `<option value="${s.name}" data-ects="${s.ects}" data-stage="${s.year}">${s.name} - ${stageNamesKu[s.year]} (${s.ects} ECTS)</option>`);
     }
 
     function addFailedSubjectGeneral() {
@@ -491,9 +492,10 @@
       if (overloadSubjects.some(s => s.name === name)) return alert("ئەم وانەیە پێشتر زیادکراوە!");
       
       const ects = parseInt(sel.options[sel.selectedIndex].getAttribute('data-ects'));
+      const stage = parseInt(sel.options[sel.selectedIndex].getAttribute('data-stage'));
       if (!checkECTSLimit(ects)) return;
       
-      overloadSubjects.push({ name: name, ects: ects });
+      overloadSubjects.push({ name: name, ects: ects, stage: stage });
       sel.value = '';
       goToStep('step4');
     }
@@ -551,11 +553,14 @@
       } else {
         listOverload.innerHTML = overloadSubjects.map((s, idx) => `
           <div class="subject-item fail-item">
-            <span>${s.name}</span>
-            <div style="display:flex; align-items:center; gap:10px;">
-              <span style="font-weight:900; color:var(--warn);">${s.ects} ECTS</span>
-              <button class="btn-danger-sm" data-html2canvas-ignore="true" onclick="removeSubject(${idx})">سڕینەوە</button>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <span style="font-weight:800; font-size:15px;">${s.name}</span>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="background:#ffedd5; color:#b45309; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:800;">${stageNamesKu[s.stage]}</span>
+                <span style="font-weight:900; color:var(--warn); font-size:13px;">${s.ects} ECTS</span>
+              </div>
             </div>
+            <button class="btn-danger-sm" data-html2canvas-ignore="true" onclick="removeSubject(${idx})">سڕینەوە</button>
           </div>
         `).join('');
       }
@@ -640,7 +645,9 @@
       
       let txt = `Raparin Uni - ECTS Load\nStage: ${currentStage}, Sem: ${currentSem}\n\n`;
       if(isPrivateMode && privateStudentData) txt += `Student: ${privateStudentData.name}\n\n`;
-      txt += `Total Load: ${total}/${MAX_ECTS} ECTS`;
+      txt += `OVERLOAD MODULES:\n`;
+      overloadSubjects.forEach(s => txt += `- ${s.name} (Stage ${s.stage})\n`);
+      txt += `\nTotal Load: ${total}/${MAX_ECTS} ECTS`;
       
       const qc = document.getElementById('qrcode');
       qc.innerHTML = '<canvas id="qrCanvas"></canvas>'; // Creates raw canvas for QRious
