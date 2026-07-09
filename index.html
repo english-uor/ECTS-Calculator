@@ -236,7 +236,9 @@
       <div class="step-header"><h2 id="dashTitle">ژمێرەری ECTS</h2><p id="dashSub">قۆناغی ئێستا</p></div>
 
       <div id="exportArea">
-        <div style="font-size:18px; font-weight:900; color:var(--ink); margin-bottom:20px; display:none; text-align:center; border-bottom: 2px solid var(--line); padding-bottom: 12px;" id="pdfHeader">بەشی زمانی ئینگلیزی - ئەنجامی کۆتایی ECTS</div>
+        <div style="font-size:18px; font-weight:900; color:var(--ink); margin-bottom:10px; display:none; text-align:center; border-bottom: 2px solid var(--line); padding-bottom: 12px;" id="pdfHeader">بەشی زمانی ئینگلیزی - ئەنجامی کۆتایی ECTS</div>
+        
+        <div id="studentInfoBox" style="text-align:center; margin-bottom:20px; font-size:14px; font-weight:800; color:var(--brand2); background:#eef4ff; padding:12px; border-radius:12px; border:1px solid #c7d7fe;"></div>
         
         <span class="res-label">کۆی بنەڕەتی (Core)</span>
         <div id="listCore" class="subject-list"></div>
@@ -516,6 +518,13 @@
     function setupResultsPage() {
       const semName = currentSem === 'Fall' ? 'وەرزی پایزە' : 'وەرزی بەهارە';
       document.getElementById('dashSub').textContent = `${stageNamesKu[currentStage]} - ${semName}`;
+      
+      // Update Student Info Box
+      let infoText = `${stageNamesKu[currentStage]} - ${semName}`;
+      if (isPrivateMode && privateStudentData) {
+        infoText = `خوێندکار: ${privateStudentData.name} | ` + infoText;
+      }
+      document.getElementById('studentInfoBox').textContent = infoText;
       
       const btnBack = document.getElementById('btnGoBackAdd');
       btnBack.onclick = function() {
